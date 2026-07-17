@@ -139,22 +139,33 @@ function getRandomPokemonId() {
 
     return randomId;
 }
-
 async function showFeaturedPokemon() {
     const id = getRandomPokemonId();
+
+    console.log('Slumpat Pokémon-ID:', id);
+
     elements.featuredLoader.hidden = false;
     elements.featuredImage.hidden = true;
 
     try {
         const pokemon = await PokePal.fetchPokemonById(id);
+
+        console.log('Hämtad Pokémon:', pokemon);
+
         elements.featuredImage.src = pokemon.image;
-        elements.featuredImage.alt = `Featured Pokémon: ${PokePal.capitalize(pokemon.name)}`;
+        elements.featuredImage.alt =
+            `Featured Pokémon: ${PokePal.capitalize(pokemon.name)}`;
+
         elements.featuredCaption.textContent =
-            `${PokePal.capitalize(pokemon.name)} ${PokePal.formatPokemonNumber(pokemon.id)}`;
+            `${PokePal.capitalize(pokemon.name)} ${
+                PokePal.formatPokemonNumber(pokemon.id)
+            }`;
+
         elements.featuredImage.hidden = false;
     } catch (error) {
         console.error(error);
-        elements.featuredCaption.textContent = 'The featured Pokémon could not be loaded.';
+        elements.featuredCaption.textContent =
+            'The featured Pokémon could not be loaded.';
     } finally {
         elements.featuredLoader.hidden = true;
     }
