@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PokéPetal is a cute Pokémon companion with favorites, a team builder and a full Pokédex.">
+  <title>PokéPetal</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+
+  <script src="js/shared.js" defer></script>
+  <script src="js/script.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<header class="site-header">
+  <div class="header-content">
+    <div>
+      <h1>PokéPetal</h1>
+      <p class="tagline">A cute place to discover Pokémon, save favorites and build your dream team.</p>
+    </div>
+
+    <button id="theme-button" class="theme-button" type="button" aria-pressed="false">
+      🌙 Dark theme
+    </button>
+  </div>
+
+  <nav aria-label="Main navigation">
+    <ul class="nav-list">
+      <li><a href="index.html" aria-current="page">Home</a></li>
+      <li><a href="pokedex.html">Pokédex</a></li>
+      <li><a href="binder.html">Virtual Binder</a></li>
+      <li><a href="#favorites">Favorites</a></li>
+      <li><a href="#team">My team</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main-content">
+  <section class="section hero-section" aria-labelledby="hero-heading">
+    <div class="hero-text">
+      <p class="eyebrow">Welcome, trainer</p>
+      <h2 id="hero-heading">Your pocket-sized Pokémon sanctuary</h2>
+      <p>
+        Explore the complete Pokédex, collect favorites and build a team of up to
+        six Pokémon.
+      </p>
+      <a class="primary-button link-button" href="pokedex.html">Open the Pokédex</a>
+    </div>
+
+    <figure id="featured-card" class="featured-card">
+      <div id="featured-loader" class="loader" aria-hidden="true"></div>
+      <img id="featured-image" src="" alt="" width="320" height="320">
+      <figcaption id="featured-caption">Loading a Pokémon...</figcaption>
+    </figure>
+  </section>
+
+  <section class="section information-section" aria-labelledby="discover-heading">
+    <div>
+      <p class="eyebrow">More than a list</p>
+      <h2 id="discover-heading">Discover every generation</h2>
+      <p>
+        The Pokédex retrieves current Pokémon data from PokéAPI.
+      </p>
+    </div>
+
+    <div class="feature-list">
+      <article>
+        <span aria-hidden="true">⌕</span>
+        <h3>Search</h3>
+        <p>Find a Pokémon by name or Pokédex number.</p>
+      </article>
+
+      <article>
+        <span aria-hidden="true">♡</span>
+        <h3>Save favorites</h3>
+        <p>Keep a small collection of your most loved Pokémon.</p>
+      </article>
+
+      <article>
+        <span aria-hidden="true">✦</span>
+        <h3>Build a team</h3>
+        <p>Choose up to six partners for your dream team.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="favorites" class="section accent-section" aria-labelledby="favorites-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Your collection</p>
+        <h2 id="favorites-heading">Favorites</h2>
+      </div>
+      <span id="favorite-count" class="badge">0</span>
+    </div>
+
+    <p id="favorites-status" class="status-message" aria-live="polite"></p>
+    <div id="favorites-grid" class="mini-grid"></div>
+  </section>
+
+  <section id="team" class="section" aria-labelledby="team-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Choose up to six</p>
+        <h2 id="team-heading">My team</h2>
+      </div>
+      <span id="team-count" class="badge">0 / 6</span>
+    </div>
+
+    <p id="team-status" class="status-message" aria-live="polite"></p>
+    <div id="team-grid" class="team-grid"></div>
+
+    <button id="clear-team-button" class="secondary-button" type="button">Clear team</button>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>PokéPetal was created as a Web Development project.</p>
+  <p>Pokémon data is provided by PokéAPI.</p>
+</footer>
+</body>
+</html>

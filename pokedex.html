@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Browse, search and filter the complete PokéPetal Pokédex.">
+  <title>Pokédex | PokéPetal</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+
+
+
+  <script src="js/shared.js" defer></script>
+  <script src="js/pokedex.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<header class="site-header compact-header">
+  <div class="header-content">
+    <div>
+      <p class="eyebrow">PokéPetal</p>
+      <h1>Pokédex</h1>
+      <p class="tagline">Search and explore Pokémon from every generation.</p>
+    </div>
+
+    <button id="theme-button" class="theme-button" type="button" aria-pressed="false">
+      🌙 Dark theme
+    </button>
+  </div>
+
+  <nav aria-label="Main navigation">
+    <ul class="nav-list">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="pokedex.html" aria-current="page">Pokédex</a></li>
+      <li><a href="binder.html">Virtual Binder</a></li>
+      <li><a href="index.html#favorites">Favorites</a></li>
+      <li><a href="index.html#team">My team</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main-content">
+  <section class="section" aria-labelledby="pokedex-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Catch a glimpse of them all</p>
+        <h2 id="pokedex-heading">All Pokémon</h2>
+      </div>
+      <p id="pokemon-counter" class="counter" aria-live="polite">Loading...</p>
+    </div>
+
+    <form id="search-form" class="control-panel" role="search">
+      <div class="form-group">
+        <label for="search-input">Search by name or number</label>
+        <input id="search-input" name="search" type="search" placeholder="For example Eevee or 133" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="type-filter">Filter by type</label>
+        <select id="type-filter" name="type">
+          <option value="all">All types</option>
+        </select>
+      </div>
+
+      <button class="primary-button" type="submit">Search</button>
+      <button id="reset-button" class="secondary-button" type="button">Reset</button>
+    </form>
+
+    <p id="status-message" class="status-message" aria-live="polite"></p>
+
+    <div id="loading-area" class="loading-area" aria-live="polite" aria-busy="true">
+      <div class="loader" aria-hidden="true"></div>
+      <p>Fetching Pokémon from PokéAPI...</p>
+    </div>
+
+    <div id="pokemon-grid" class="pokemon-grid"></div>
+
+    <div class="load-more-container">
+      <button id="load-more-button" class="primary-button" type="button" hidden>
+        Load more Pokémon
+      </button>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>PokéPetal was created as a Web Development project.</p>
+  <p>Pokémon data is provided by PokéAPI.</p>
+</footer>
+
+<template id="pokemon-card-template">
+  <article class="pokemon-card">
+    <div class="card-top">
+      <span class="pokemon-number"></span>
+      <button class="favorite-button" type="button" aria-label="Add to favorites" aria-pressed="false">♡</button>
+    </div>
+
+    <div class="image-background">
+      <img class="pokemon-image" src="" alt="" width="190" height="190" loading="lazy">
+    </div>
+
+    <h3 class="pokemon-name"></h3>
+    <div class="type-list"></div>
+
+    <dl class="pokemon-facts">
+      <div>
+        <dt>Height</dt>
+        <dd class="pokemon-height"></dd>
+      </div>
+      <div>
+        <dt>Weight</dt>
+        <dd class="pokemon-weight"></dd>
+      </div>
+    </dl>
+
+    <button class="team-button primary-button" type="button">Add to team</button>
+  </article>
+</template>
+</body>
+</html>
