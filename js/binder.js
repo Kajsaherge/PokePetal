@@ -7,6 +7,8 @@ const BINDER_STORAGE_KEY = 'pinkPokepalVirtualBinder';
 const CARDS_PER_PAGE = 9;
 const SEARCH_RESULT_LIMIT = 12;
 
+const searchCache = new Map();
+
 const elements = {
     themeButton: document.querySelector('#theme-button'),
     binderName: document.querySelector('#binder-name'),
@@ -149,11 +151,22 @@ function escapeQueryValue(value) {
 }
 
 async function searchCards(searchText) {
-    const safeSearchText = escapeQueryValue(searchText.trim());
-    const query = encodeURIComponent(`name:"${safeSearchText}*"`);
+    const normalizedSearchText =
+        searchText.trim().toLowerCase();
+
+    if (searchCache.has(normalizedSearchText)) {
+        return searchCache.get(normalizedSearchText);
+    }
+
+    const safeSearchText =
+        escapeQueryValue(normalizedSearchText);
+
+    const query = encodeURIComponent(
+        `name:"${safeSearchText}*"`
+    );
 
     const response = await fetch(
-        `${TCG_API_URL}?q=${query}&pageSize=${SEARCH_RESULT_LIMIT}&orderBy=-set.releaseDate`
+        `${TCG_API_URL}?q=${query}&pageSize=${SEARCH_RESULT_LIMIT}`
     );
 
     if (!response.ok) {
@@ -163,7 +176,11 @@ async function searchCards(searchText) {
     }
 
     const result = await response.json();
-    return result.data || [];
+    const cards = result.data || [];
+
+    searchCache.set(normalizedSearchText, cards);
+
+    return cards;
 }
 
 function getUngradedValue(card) {
