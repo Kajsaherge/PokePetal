@@ -19,7 +19,12 @@ const state = {
     favorites: PokePal.getFavorites(),
     team: PokePal.getTeam(),
     featuredTimer: null,
-    featuredPokemonIds: [25, 35, 39, 133, 151, 175, 183, 280, 700, 778],
+
+    featuredPokemonIds: Array.from(
+        { length: 1025 },
+        (_, index) => index + 1
+    ),
+
     featuredIndex: 0
 };
 
