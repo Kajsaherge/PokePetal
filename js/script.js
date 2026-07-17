@@ -15,18 +15,32 @@ const elements = {
     clearTeamButton: document.querySelector('#clear-team-button')
 };
 
+function shuffleArray(array) {
+    for (let index = array.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+
+        [array[index], array[randomIndex]] =
+            [array[randomIndex], array[index]];
+    }
+
+    return array;
+}
+
 const state = {
     favorites: PokePal.getFavorites(),
     team: PokePal.getTeam(),
     featuredTimer: null,
 
-    featuredPokemonIds: Array.from(
-        { length: 1025 },
-        (_, index) => index + 1
+    featuredPokemonIds: shuffleArray(
+        Array.from(
+            { length: 1025 },
+            (_, index) => index + 1
+        )
     ),
 
     featuredIndex: 0
 };
+
 
 function createCollectionCard(pokemon, collection) {
     const article = document.createElement('article');
