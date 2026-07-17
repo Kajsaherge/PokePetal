@@ -15,30 +15,13 @@ const elements = {
     clearTeamButton: document.querySelector('#clear-team-button')
 };
 
-function shuffleArray(array) {
-    for (let index = array.length - 1; index > 0; index -= 1) {
-        const randomIndex = Math.floor(Math.random() * (index + 1));
-
-        [array[index], array[randomIndex]] =
-            [array[randomIndex], array[index]];
-    }
-
-    return array;
-}
 
 const state = {
     favorites: PokePal.getFavorites(),
     team: PokePal.getTeam(),
     featuredTimer: null,
+    featuredPokemonId: null
 
-    featuredPokemonIds: shuffleArray(
-        Array.from(
-            { length: 1025 },
-            (_, index) => index + 1
-        )
-    ),
-
-    featuredIndex: 0
 };
 
 
@@ -145,8 +128,20 @@ async function renderTeam() {
     }
 }
 
+function getRandomPokemonId() {
+    let randomId;
+
+    do {
+        randomId = Math.floor(Math.random() * 1025) + 1;
+    } while (randomId === state.featuredPokemonId);
+
+    state.featuredPokemonId = randomId;
+
+    return randomId;
+}
+
 async function showFeaturedPokemon() {
-    const id = state.featuredPokemonIds[state.featuredIndex];
+    const id = getRandomPokemonId();
     elements.featuredLoader.hidden = false;
     elements.featuredImage.hidden = true;
 
@@ -167,9 +162,8 @@ async function showFeaturedPokemon() {
 
 function startSlideshow() {
     stopSlideshow();
+
     state.featuredTimer = window.setInterval(() => {
-        state.featuredIndex =
-            (state.featuredIndex + 1) % state.featuredPokemonIds.length;
         showFeaturedPokemon();
     }, 4000);
 }
