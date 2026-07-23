@@ -5,9 +5,7 @@ const TCG_API_URL = 'https://api.pokemontcg.io/v2/cards';
 const BINDER_STORAGE_KEY = 'pinkPokepalVirtualBinder';
 
 const CARDS_PER_PAGE = 9;
-const SEARCH_RESULT_LIMIT = 12;
-
-const searchCache = new Map();
+const SEARCH_RESULT_LIMIT = 24;
 
 const elements = {
     themeButton: document.querySelector('#theme-button'),
@@ -29,8 +27,18 @@ const elements = {
 
     searchForm: document.querySelector('#card-search-form'),
     searchInput: document.querySelector('#card-search-input'),
+    setFilter: document.querySelector('#card-set-filter'),
+    numberFilter: document.querySelector('#card-number-filter'),
+    rarityFilter: document.querySelector('#card-rarity-filter'),
+    sortFilter: document.querySelector('#card-sort-filter'),
+    resetSearchButton: document.querySelector('#reset-search-button'),
     searchStatus: document.querySelector('#search-status'),
+    searchCount: document.querySelector('#search-count'),
     searchResults: document.querySelector('#search-results'),
+    searchPagination: document.querySelector('#search-pagination'),
+    searchPreviousButton: document.querySelector('#search-previous-button'),
+    searchNextButton: document.querySelector('#search-next-button'),
+    searchPageIndicator: document.querySelector('#search-page-indicator'),
     cardModal: document.querySelector('#card-modal'),
     cardModalClose: document.querySelector('#card-modal-close'),
     cardModalImage: document.querySelector('#card-modal-image'),
@@ -59,6 +67,18 @@ const defaultBinder = {
 };
 
 let binder = loadBinder();
+
+const searchState = {
+    page: 1,
+    totalCount: 0,
+    totalPages: 0,
+    query: '',
+    orderBy: '-set.releaseDate',
+    loading: false
+};
+
+const searchCache = new Map();
+let activeSearchController = null;
 
 function cloneDefaultBinder() {
     return JSON.parse(JSON.stringify(defaultBinder));
@@ -103,6 +123,7 @@ function loadBinder() {
                     ...card,
                     imageLarge: card.imageLarge || card.image || '',
                     setReleaseDate: card.setReleaseDate || '',
+                    setPrintedTotal: Number(card.setPrintedTotal) || 0,
                     rarity: card.rarity || 'Unknown rarity',
                     hp: card.hp || '',
                     types: Array.isArray(card.types) ? card.types : [],
@@ -150,23 +171,77 @@ function escapeQueryValue(value) {
         .replaceAll('"', '\\"');
 }
 
-async function searchCards(searchText) {
-    const normalizedSearchText =
-        searchText.trim().toLowerCase();
+function parseCardNumberFilter(value) {
+    const normalizedValue = value.trim().replaceAll(' ', '');
 
-    if (searchCache.has(normalizedSearchText)) {
-        return searchCache.get(normalizedSearchText);
+    if (!normalizedValue) return [];
+
+    const slashParts = normalizedValue.split('/');
+
+    if (slashParts.length === 2) {
+        const [cardNumber, printedTotal] = slashParts;
+
+        if (!cardNumber || !/^\d+$/.test(printedTotal)) {
+            throw new Error('Use a number like 152/142, or a promo code like SWSH001.');
+        }
+
+        return [
+            `number:"${escapeQueryValue(cardNumber)}"`,
+            `set.printedTotal:${printedTotal}`
+        ];
     }
 
-    const safeSearchText =
-        escapeQueryValue(normalizedSearchText);
+    if (slashParts.length > 2) {
+        throw new Error('Use a number like 152/142, or a promo code like SWSH001.');
+    }
 
-    const query = encodeURIComponent(
-        `name:"${safeSearchText}*"`
-    );
+    return [`number:"${escapeQueryValue(normalizedValue)}"`];
+}
+
+function buildCardQuery() {
+    const queryParts = [];
+    const name = elements.searchInput.value.trim();
+    const setName = elements.setFilter.value.trim();
+    const cardNumber = elements.numberFilter.value;
+    const rarity = elements.rarityFilter.value;
+
+    if (name) queryParts.push(`name:"${escapeQueryValue(name)}*"`);
+    if (setName) queryParts.push(`set.name:"${escapeQueryValue(setName)}*"`);
+
+    queryParts.push(...parseCardNumberFilter(cardNumber));
+
+    if (rarity) queryParts.push(`rarity:"${escapeQueryValue(rarity)}"`);
+
+    return queryParts.join(' ');
+}
+
+function getSearchCacheKey(query, page, orderBy) {
+    return `${query}|${page}|${orderBy}`;
+}
+
+async function searchCards(query, page, orderBy) {
+    const cacheKey = getSearchCacheKey(query, page, orderBy);
+
+    if (searchCache.has(cacheKey)) {
+        return searchCache.get(cacheKey);
+    }
+
+    if (activeSearchController) {
+        activeSearchController.abort();
+    }
+
+    activeSearchController = new AbortController();
+
+    const parameters = new URLSearchParams({
+        q: query,
+        page: String(page),
+        pageSize: String(SEARCH_RESULT_LIMIT),
+        orderBy
+    });
 
     const response = await fetch(
-        `${TCG_API_URL}?q=${query}&pageSize=${SEARCH_RESULT_LIMIT}`
+        `${TCG_API_URL}?${parameters.toString()}`,
+        { signal: activeSearchController.signal }
     );
 
     if (!response.ok) {
@@ -176,11 +251,8 @@ async function searchCards(searchText) {
     }
 
     const result = await response.json();
-    const cards = result.data || [];
-
-    searchCache.set(normalizedSearchText, cards);
-
-    return cards;
+    searchCache.set(cacheKey, result);
+    return result;
 }
 
 function getUngradedValue(card) {
@@ -201,6 +273,7 @@ function createStoredCard(apiCard) {
         setName: apiCard.set?.name || 'Unknown set',
         setId: apiCard.set?.id || '',
         setReleaseDate: apiCard.set?.releaseDate || '',
+        setPrintedTotal: Number(apiCard.set?.printedTotal) || 0,
         image: apiCard.images?.small || apiCard.images?.large || '',
         imageLarge: apiCard.images?.large || apiCard.images?.small || '',
         hp: apiCard.hp || '',
@@ -329,7 +402,7 @@ function openCardModal(card) {
     elements.cardModalImage.alt = card.name || 'Pokémon card';
     elements.cardModalTitle.textContent = card.name || 'Pokémon card';
     elements.cardModalSet.textContent = card.setName || '—';
-    elements.cardModalNumber.textContent = card.number || '—';
+    elements.cardModalNumber.textContent = formatPrintedCardNumber(card);
     elements.cardModalRarity.textContent = card.rarity || '—';
     elements.cardModalHp.textContent = card.hp || '—';
     elements.cardModalType.textContent = card.types?.length ? card.types.join(', ') : '—';
@@ -517,6 +590,15 @@ function renderBinder() {
     updatePageNavigation();
 }
 
+function formatPrintedCardNumber(card) {
+    const number = card?.number || '—';
+    const printedTotal = Number(card?.set?.printedTotal ?? card?.setPrintedTotal);
+
+    if (!printedTotal || /[a-z]/i.test(number)) return number;
+
+    return `${number}/${printedTotal}`;
+}
+
 function createSearchResultCard(apiCard) {
     const article = document.createElement('article');
     article.className = 'search-result-card';
@@ -532,7 +614,7 @@ function createSearchResultCard(apiCard) {
 
     const set = document.createElement('p');
     set.textContent =
-        `${apiCard.set?.name || 'Unknown set'} · ${apiCard.number}`;
+        `${apiCard.set?.name || 'Unknown set'} · ${formatPrintedCardNumber(apiCard)}`;
 
     const rarity = document.createElement('p');
     rarity.textContent = apiCard.rarity || 'Unknown rarity';
@@ -565,22 +647,30 @@ function createSearchResultCard(apiCard) {
     return article;
 }
 
-async function handleCardSearch(event) {
-    event.preventDefault();
-
-    const searchText = elements.searchInput.value.trim();
-
-    if (searchText.length < 2) {
-        elements.searchStatus.textContent =
-            'Enter at least two characters.';
+async function loadSearchPage({ scrollToResults = false } = {}) {
+    if (!searchState.query || searchState.loading) {
         return;
     }
 
+    searchState.loading = true;
     elements.searchStatus.textContent = 'Searching cards...';
+    elements.searchCount.textContent = '';
     elements.searchResults.replaceChildren();
+    elements.searchPagination.hidden = true;
 
     try {
-        const cards = await searchCards(searchText);
+        const result = await searchCards(
+            searchState.query,
+            searchState.page,
+            searchState.orderBy
+        );
+
+        const cards = result.data || [];
+        searchState.totalCount = Number(result.totalCount) || 0;
+        searchState.totalPages = Math.max(
+            1,
+            Math.ceil(searchState.totalCount / SEARCH_RESULT_LIMIT)
+        );
 
         if (cards.length === 0) {
             elements.searchStatus.textContent =
@@ -588,20 +678,100 @@ async function handleCardSearch(event) {
             return;
         }
 
+        const fragment = document.createDocumentFragment();
+
         cards.forEach((card) => {
-            elements.searchResults.append(
-                createSearchResultCard(card)
-            );
+            fragment.append(createSearchResultCard(card));
         });
 
-        elements.searchStatus.textContent =
-            `${cards.length} results shown.`;
-    } catch (error) {
-        console.error(error);
+        elements.searchResults.append(fragment);
+        elements.searchStatus.textContent = '';
 
+        const firstResultNumber =
+            ((searchState.page - 1) * SEARCH_RESULT_LIMIT) + 1;
+        const lastResultNumber =
+            firstResultNumber + cards.length - 1;
+
+        elements.searchCount.textContent =
+            `Showing ${firstResultNumber}–${lastResultNumber} of ` +
+            `${searchState.totalCount} matching cards.`;
+
+        elements.searchPageIndicator.textContent =
+            `Page ${searchState.page} of ${searchState.totalPages}`;
+
+        elements.searchPreviousButton.disabled =
+            searchState.page <= 1;
+
+        elements.searchNextButton.disabled =
+            searchState.page >= searchState.totalPages;
+
+        elements.searchPagination.hidden =
+            searchState.totalPages <= 1;
+
+        if (scrollToResults) {
+            elements.searchResults.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
+
+        console.error(error);
         elements.searchStatus.textContent =
             'Cards could not be loaded. Check your internet connection and try again.';
+    } finally {
+        searchState.loading = false;
     }
+}
+
+async function handleCardSearch(event) {
+    event.preventDefault();
+
+    let query;
+
+    try {
+        query = buildCardQuery();
+    } catch (error) {
+        elements.searchStatus.textContent = error.message;
+        elements.searchCount.textContent = '';
+        return;
+    }
+
+    if (!query) {
+        elements.searchStatus.textContent =
+            'Enter a card name, card number, promo number or choose a filter.';
+        elements.searchCount.textContent = '';
+        return;
+    }
+
+    searchState.page = 1;
+    searchState.query = query;
+    searchState.orderBy = elements.sortFilter.value;
+
+    await loadSearchPage();
+}
+
+function resetCardSearch() {
+    elements.searchForm.reset();
+    searchState.page = 1;
+    searchState.totalCount = 0;
+    searchState.totalPages = 0;
+    searchState.query = '';
+    searchState.orderBy = '-set.releaseDate';
+
+    if (activeSearchController) {
+        activeSearchController.abort();
+        activeSearchController = null;
+    }
+
+    elements.searchStatus.textContent = '';
+    elements.searchCount.textContent = '';
+    elements.searchResults.replaceChildren();
+    elements.searchPagination.hidden = true;
+    elements.searchInput.focus();
 }
 
 function addPage() {
@@ -654,8 +824,7 @@ function clearBinder() {
     saveBinder();
     renderBinder();
 
-    elements.searchResults.replaceChildren();
-    elements.searchStatus.textContent = '';
+    resetCardSearch();
 }
 
 function showTemporaryMessage(element, message) {
@@ -676,6 +845,26 @@ elements.searchForm.addEventListener(
     'submit',
     handleCardSearch
 );
+
+
+elements.resetSearchButton.addEventListener(
+    'click',
+    resetCardSearch
+);
+
+elements.searchPreviousButton.addEventListener('click', async () => {
+    if (searchState.page > 1) {
+        searchState.page -= 1;
+        await loadSearchPage({ scrollToResults: true });
+    }
+});
+
+elements.searchNextButton.addEventListener('click', async () => {
+    if (searchState.page < searchState.totalPages) {
+        searchState.page += 1;
+        await loadSearchPage({ scrollToResults: true });
+    }
+});
 
 
 
